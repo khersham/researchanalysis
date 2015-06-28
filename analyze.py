@@ -9,8 +9,9 @@ import MySQLdb as mdb
 import sys
 import requests
 #import urllib2
+import string
 import time
-from bs4 import BeautifulSoup 
+#from bs4 import BeautifulSoup 
 import re
 import datetime
 import pandas as pd
@@ -19,6 +20,7 @@ import nltk
 from nltk.stem.snowball import SnowballStemmer #Import stemmer to group words that have similar stem
 from sklearn import feature_extraction
 from sklearn.feature_extraction.text import TfidfVectorizer #Import vectorizer
+from sklearn.cluster import KMeans #Import clustering tools
 
 class medID:
     def __init__(self, pmid, Abstract):
@@ -28,7 +30,7 @@ class medID:
 """
 Open a connection to the database
 """        
-con = mdb.connect(host = 'localhost', user = 'genuser', passwd = 'genocide', db = 'pubmedRetrieve')
+con = mdb.connect(host = 'localhost', user = 'genuser', passwd = 'genocide', db = 'Articles')
 #con.set_character_set('utf8')
 db = con.cursor()   
 #db.execute('SET CHARACTER SET utf8;')
@@ -65,6 +67,22 @@ def tokenize_and_stem(text):
         
 #define vectorizer parameters
 #vectorizer = TfidfVectorizer(max_df=0.8, max_features=200000,min_df=0.2, stop_words='english',use_idf=True, tokenizer=tokenize_and_stem, ngram_range=(1,3))            
-vectorizer = TfidfVectorizer(max_df=0.8, min_df=0.2, stop_words='english',use_idf=True)   
+vectorizer = TfidfVectorizer(max_df=0.8, min_df=0.2, stop_words='english',use_idf=True,tokenizer=tokenize_and_stem)   
 
 exampleText = """SELECT Id, Abstract FROM Article WHERE Id BETWEEN 1415898 AND 1415927"""        
+
+token_dict = {}
+
+def vectorize_text(texts):
+    for elem in texts:
+        if elem[1] is None:
+            textcopy = "None"
+        else:      
+            textcopy = elem[1].lower() #We convert all the texts into lower case
+        no_punctuation = textcopy.translate(None, string.punctuation) #We get rid of the punctuation
+        identifier = str(elem[0])
+        token_dict[identifier] = no_punctuation
+        
+        
+def kmeanfit(number_cluster): 
+    return KMeans(n_clusters=number_cluster) #Now choose the number of clusters in K-mean    
