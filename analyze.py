@@ -22,6 +22,18 @@ from sklearn import feature_extraction
 from sklearn.feature_extraction.text import TfidfVectorizer #Import vectorizer
 from sklearn.cluster import KMeans #Import clustering tools
 
+
+#Import Stopwords
+temp = pd.read_csv('/home/lim/Documents/mapreduce/common.txt',delimiter=",")
+temp3 = [i[0] for i in temp.values.tolist()]
+temp = pd.read_csv('/home/lim/Documents/mapreduce/common1.txt',delimiter=",")
+temp2 = [i[0] for i in temp.values.tolist()]
+stopwords = nltk.corpus.stopwords.words('english')
+stopwords = set(stopwords) | set(temp2) | set(temp3)
+stopwords = list(stopwords)
+#End of import
+
+
 class medID:
     def __init__(self, pmid, Abstract):
         self.name = pmid
@@ -50,15 +62,15 @@ def query_search(db, text):
 
 class TFIDFmember:
 
-    def __init__(self,dataset):
+    def __init__(self,dataset,stopwords):
         self.token_dict = {}
         self.totalvocab_stemmed = []
         self.totalvocab_tokenized = []
-        self.stopwords = nltk.corpus.stopwords.words('english')#Define the necessary stopwords and stems
+        #self.stopwords = nltk.corpus.stopwords.words('english')#Define the necessary stopwords and stems
         self.stemmer = SnowballStemmer("english")
         self.datalist = self.textTrim(dataset)
         self.vtext = self.vectorize_text(self.datalist)
-        self.vectorizer = TfidfVectorizer(max_df=1.0, min_df=0.1, stop_words='english',use_idf=True,tokenizer=self.tokenize_and_stem,ngram_range=(1,3))   
+        self.vectorizer = TfidfVectorizer(stop_words='english',use_idf=True,tokenizer=self.tokenize_and_stem,ngram_range=(1,3)) #max_df=1.0, min_df=0.1,   
         self.tfidf = self.vectorizer.fit_transform(self.token_dict.values())
         self.terms = self.vectorizer.get_feature_names()
         self.vocabulary = self.wordCollect(zip(*self.datalist)[1])        
@@ -80,7 +92,7 @@ class TFIDFmember:
             tokens = [word for sent in nltk.sent_tokenize(text) for word in nltk.word_tokenize(sent)]
             # filter out any tokens not containing letters (e.g., numeric tokens, raw punctuation)
             filtered_tokens = [token for token in tokens if re.search('[a-zA-Z]', token)]
-            stems = [self.stemmer.stem(t) for t in filtered_tokens if t not in self.stopwords]
+            stems = [self.stemmer.stem(t) for t in filtered_tokens if t not in stopwords]
             return stems 
         except:
             print("Incorrect input for tokenization.")
@@ -112,7 +124,7 @@ class TFIDFmember:
         return pd.DataFrame({'words': self.totalvocab_stemmed}, index = self.totalvocab_stemmed) #Experiment with token         
             
            
-exampleText = """SELECT Id, Abstract FROM Article WHERE Id BETWEEN 1415898 AND 1416427"""        
+exampleText = """SELECT Id, Abstract FROM Article WHERE Id BETWEEN 1415898 AND 1418427"""        
 
 class KMeanCluster:
     def __init__(self,dataset,tfidf_matrix,number_cluster):
@@ -131,7 +143,7 @@ class KMeanCluster:
             print("Cluster %d:" %i)
             
             for ind in order_centroids[i, :10]:
-                print(' %s' % self.TFIDF_vocab.ix[self.TFIDF_terms[ind].split(' ')].values.tolist()[0][0].encode('utf-8', 'ignore'))
+                print(' %s' % self.TFIDF_vocab.ix[self.TFIDF_terms[ind].split(' ')].values.tolist()[0][0]) #.encode('utf-8', 'ignore')
             print()    
       
                   
