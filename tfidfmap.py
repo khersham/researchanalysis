@@ -22,6 +22,8 @@ from sklearn import feature_extraction
 from sklearn.feature_extraction.text import TfidfVectorizer #Import vectorizer
 from sklearn.cluster import KMeans #Import clustering tools
 from collections import Counter #Tabulate dictionary
+from collections import namedtuple #To put TDIDF into tuple dictionary
+import math
 
 
 #Import Stopwords
@@ -61,6 +63,8 @@ def query_search(db, text):
     except:
         print("Query problem. Please check the query again.")
        
+exampleText = """SELECT Id, Abstract FROM Article WHERE Id BETWEEN 1415898 AND 1418427""" 
+       
 #Start of Mapper function         
 #First we tokenize the words for unigram
 def tokenize_and_stem(text):
@@ -78,12 +82,56 @@ def tokenize_and_stem(text):
 #Based on the word collection tokenized we create a dictionary        
 def create_dict(word_collection,ID):
     try:
-        article_length = len(word_collection) #Obtain the length of the abstract
+        #article_length = len(word_collection) #Obtain the length of the abstract
+        dkey = namedtuple("dkey", ["dWord","dId"])
         dict1 = Counter(word_collection) #A dictionary based on number of terms appeared is created
-        dict2 = {word:[ID,dict1[word],article_length] for word in dict1} #Pack the word, abstarct number and length into tuple
+        article_length = max(dict1.values()) #For Tf we require max term in a document
+        #dict2 = {word:[ID,dict1[word],article_length,1] for word in dict1} #Pack the word, abstarct number and length into tuple
+        dict2 = {dkey(dWord = word, dId = ID):[dict1[word],article_length,1,0] for word in dict1} #To select, use [dict[word] for word in dict if word.dict_Word=='XXX']
         return dict2
     except:
         print("Unable to create dictionary, please check your file.")
         
+
+#Now we sum up the document frequency
+def docFrequency(dictfile):
+    try:
+        counter_list = Counter([word.dWord for word in dictfile])
+        for word in dictfile:
+            for elem in counter_list:
+                if word.dWord==elem:
+                    dictfile[word].pop(2)
+                    dictfile[word].insert(2,counter_list[elem])
+        
+    except:
+        print("Error in summing up the document frequency.")
+
+#TF function can be defined accordingly
+def TFfunction(term_freq,term_max):
+    return 0.5 + (0.5*float(term_freq))/float(term_max)
+    
+#IDF function can be defined accordingly
+def IDFfunction(total_num,occurence):
+    try:
+        result = math.log((1+total_num)/float((1+occurence)))
+        return result
+    except:
+        print("Invalid function")
+                
+        
+#Now let us define a TFIDF function
+def TFIDFfunction(dictfile):
+    try:
+        total_num = len(set([word.dId for word in dictfile]))
+        for word in dictfile:
+            dictfile[word].pop()
+            TFIDFf = TFfunction(dictfile[word][0],dictfile[word][1])*IDFfunction(total_num,dictfile[word][2])
+            dictfile[word].append(TFIDFf)
+    except:
+        print("Error in TFIDF function, check your file or function")
+        
+    
+ 
+
 
                         
